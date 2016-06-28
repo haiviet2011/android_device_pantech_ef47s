@@ -1,0 +1,35 @@
+# pantech usb composition
+on early-init
+    # 120926 LS2 Warfs for otg_storage
+    export OTG_STORAGE /storage/otg_storage
+    mkdir /storage/otg_storage 0775 system system
+    symlink /storage/otg_storage /otg_storage
+    symlink /storage/otg_storage /mnt/otg_storage
+
+on boot
+    chmod 0666 /dev/obex
+
+on usb-charging-mode
+	write /sys/class/android_usb/android0/enable 0
+	write /sys/class/android_usb/android0/f_diag/clients diag
+	write /sys/class/android_usb/android0/f_serial/transports smd
+	write /sys/class/android_usb/android0/functions serial,diag
+	write /sys/devices/platform/android_usb/factory_mode 0
+	write /sys/devices/platform/android_usb/usb_charging_mode serial,diag
+	write /sys/class/android_usb/android0/enable 1
+
+on property:sys.usb.config=*
+    write /sys/class/android_usb/android0/functions ${sys.usb.config}
+    setprop sys.usb.state ${sys.usb.config}
+
+on property:persist.service.adb.enable=1
+	start adbd
+
+on property:persist.service.adb.enable=0
+	stop adbd
+
+# Allow persistent usb charging disabling
+service qcom-usb-sh /system/bin/sh /init.qcom.usb.sh
+    class core
+    user root
+    oneshot
